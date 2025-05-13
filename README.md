@@ -1,8 +1,8 @@
-# Feel++ Template Project
+# Course.pde Exam 2025
 
 ![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.12762669.svg)
-![GitHub Release](https://img.shields.io/github/v/release/feelpp/feelpp-project)
-![CI](https://github.com/feelpp/feelpp-project/workflows/CI/badge.svg)
+![GitHub Release](https://img.shields.io/github/v/release/feelpp/course.pde-exam-2025)
+![CI](https://github.com/feelpp/course.pde-exam-2025/workflows/CI/badge.svg)
 
 A template repository to kickstart your finite-element applications with Feel++.
 

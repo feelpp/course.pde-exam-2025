@@ -1,7 +1,7 @@
 site:
-  title: Feel++ Template Project
-  url: https://feelpp.github.io/feelpp-project/
-  start_page: feelpp-project::index.adoc
+  title: Course.pde Exam 2025
+  url: https://feelpp.github.io/course.pde-exam-2025/
+  start_page: course.pde-exam-2025::index.adoc
 content:
   sources:
   - url: .
