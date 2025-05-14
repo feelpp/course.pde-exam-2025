@@ -12,6 +12,12 @@ cmake --preset default
 cmake --build --preset default
 ```
 
+## tests 
+
+```bash
+ctest --preset default
+```
+
 ## Exécution des tests
 
 Les tests unitaires utilisent Boost.UT et attendent un dossier de données `src/data/` :

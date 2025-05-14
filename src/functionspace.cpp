@@ -47,3 +47,17 @@ int FunctionSpace::localToGlobal_P0(int elem, int localVertex) const
 
   return elem2dof_[elem];  // one DOF per element
 }
+
+Eigen::VectorXd FunctionSpace::interpolate(std::function<double(double,double)> g) const
+{
+    Eigen::VectorXd u(numDofs());
+    // For P1, there is exactly one DOF per node.
+    for (size_t node = 0; node < mesh_.numNodes(); ++node) {
+        int dof = node2dof_[node];
+        if (dof >= 0) {
+            const auto& P = mesh_.nodes()[node];
+            u[dof] = g(P.x(), P.y());
+        }
+    }
+    return u;
+}

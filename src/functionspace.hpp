@@ -26,6 +26,10 @@ public:
   // (localVertex must be 0)
   int localToGlobal_P0(int elem, int localVertex) const;
 
+  /// Interpolate a scalar field g(x,y) into the P1 nodal vector.
+  Eigen::VectorXd interpolate(std::function<double(double,double)> g) const;
+
+
 private:
   const Mesh& mesh_;
   FEType       feType_;

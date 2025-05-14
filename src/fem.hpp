@@ -51,7 +51,7 @@ private:
             G.update(M, e);
             // local load vector
             Eigen::Vector3d Fe = Eigen::Vector3d::Zero();
-            for(int q = 0; q < 3; ++q) {
+            for(int q = 0; q < rule.points.size(); ++q) {
                 double r = rule.points[q].x();
                 double s = rule.points[q].y();
                 double w = rule.weights[q];
@@ -95,24 +95,26 @@ public:
         Vec                     gval = Vec::Zero(n);
 
         for (auto const& [name, gfunc] : bc) {
-        // only consider names containing "Dirichlet"
-        if (name.find("Dirichlet") == std::string::npos) continue;
+            // only consider names containing "Dirichlet"
+            if (name.find("Dirichlet") == std::string::npos) continue;
 
-        int tag = V_.mesh().boundaryTag(name);
-        if (tag == 0) {
-            std::cerr << "Warning: no physical boundary named '" 
-                        << name << "'\n";
-            continue;
-        }
-
-        // mark all nodes on that tag
-        for (int i = 0; i < n; ++i) {
-            if (V_.mesh().nodeMarker(i) == tag) {
-                isDir[i]   = true;
-                auto& P    = V_.mesh().nodes()[i];
-                gval(i)    = gfunc(P.x(), P.y());
+            int tag = V_.mesh().boundaryTag(name);
+            if (tag == 0) {
+                std::cerr << "Warning: no physical boundary named '" 
+                            << name << "'\n";
+                continue;
             }
-        }
+
+            // mark all nodes on that tag
+            for (int i = 0; i < n; ++i) {
+                if (V_.mesh().nodeMarker(i) == tag) {
+                    isDir[i]   = true;
+                    auto& P    = V_.mesh().nodes()[i];
+                    gval(i)    = gfunc(P.x(), P.y());
+                    std::cout << "Dirichlet BC: node " << i 
+                              << " gval=" << gval(i) << "\n";
+                }
+            }
         }
 
         // 2) Modify RHS: for Dirichlet rows F(i)=gval; for interior subtract K(i,j)*gval(j)
@@ -120,20 +122,33 @@ public:
             if (isDir[i]) {
                 F(i) = gval(i);
             } 
+            else {
+                for(auto it = SpMat::InnerIterator(K_, i); it; ++it) {
+                    int j = it.col();
+                    std::cout << "K("<< i << "," << j<< ")=" << it.value() << "\n";
+                    if(isDir[j]) {
+                        std::cout << "before F(i)=" << F(i) << " - K(i,j)*gval(j)="
+                                  << it.value() * gval(j) << "\n";
+                        F(i) -= it.value() * gval(j);
+                        std::cout << "after F(i)=" << F(i) << " - K(i,j)*gval(j)="
+                                  << it.value() * gval(j) << "\n";
+                    }
+                }
+            }
         }
 
         // 3) Enforce Dirichlet in K_: zero rows+cols, then diag=1
         for (int i = 0; i < n; ++i) {
-        if (!isDir[i]) continue;
+            if (!isDir[i]) continue;
 
-        // zero out row i
-        for (int c = 0; c < n; ++c) {
-            for (auto it = Eigen::SparseMatrix<double>::InnerIterator(K_, c); it; ++it) {
-                if (it.row() == i) it.valueRef() = 0.0;
+            // zero out row i
+            for (int c = 0; c < n; ++c) {
+                for (auto it = Eigen::SparseMatrix<double>::InnerIterator(K_, c); it; ++it) {
+                    if (it.row() == i) it.valueRef() = 0.0;
+                }
             }
-        }
-        // place 1.0 on the diagonal
-        K_.coeffRef(i,i) = 1.0;
+            // place 1.0 on the diagonal
+            K_.coeffRef(i,i) = 1.0;
         }
 
         K_.prune(0.0);
@@ -142,9 +157,9 @@ public:
         Eigen::SparseLU<SpMat> solver;
         solver.analyzePattern(K_);
         solver.factorize(K_);
-        //std::cout << "K_=" << K_ << "\n";
-        //std::cout << "F=" << F.transpose() << "\n";
-        //std::cout << "sol=" << solver.solve(F).transpose() << "\n";
+        std::cout << "K_=" << K_ << "\n";
+        std::cout << "F=" << F.transpose() << "\n";
+        std::cout << "sol=" << solver.solve(F).transpose() << "\n";
         return solver.solve(F);
     }
 
@@ -179,7 +194,10 @@ private:
                 for(int j=0;j<3;++j){
                     Eigen::Vector2d gi = Jinv * dPhi.row(i).transpose();
                     Eigen::Vector2d gj = Jinv * dPhi.row(j).transpose();
-                    Ke(i,j) = gi.dot(gj) * detJ;
+                    for(int q = 0; q < rule.points.size(); ++q) {
+                        double w = rule.weights[q];
+                        Ke(i,j) += w * gi.dot(gj) * detJ;
+                    }
             }
             // scatter
             
@@ -193,13 +211,16 @@ private:
     }
     // check that sum of rows is 0
     void checkSum() {
+        double total = 0.0;
         for(int i=0;i<int(K_.outerSize());++i) {
             double sum = 0.0;
             for(SpMat::InnerIterator it(K_, i); it; ++it) {
                 sum += it.value();
             }
-            //if (std::abs(sum) > 1e-12)
-            //    std::cerr << "Row " << i << " sum = " << sum << "\n";
+            total += sum;
+            if (std::abs(sum) > 1e-12)
+                std::cerr << "Row " << i << " sum = " << sum << "\n";
         }
+        std::cout << "Total sum of all rows: " << total << "\n";
     }
 };

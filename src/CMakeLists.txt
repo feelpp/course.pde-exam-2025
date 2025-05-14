@@ -21,4 +21,4 @@ target_include_directories(fem_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(fem_tests PRIVATE Eigen3::Eigen)
 
 enable_testing()
-add_test(NAME FEMTests COMMAND fem_tests)
+add_test(NAME FEMTests COMMAND fem_tests ${CMAKE_CURRENT_SOURCE_DIR}/data/)

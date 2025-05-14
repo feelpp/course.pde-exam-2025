@@ -29,6 +29,8 @@
         "viewport": "cpp",
         "deque": "cpp",
         "vector": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "optional": "cpp",
+        "system_error": "cpp"
     },
 }

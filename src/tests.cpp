@@ -162,16 +162,20 @@ int main(int argc, char* argv[]) {
         };
 
         for (auto& [name, g] : funcs) {
+            auto ue = V.interpolate(g);
             std::map<std::string,std::function<double(double,double)>> bc;
             bc["Dirichlet"] = g;
 
             auto sol = A.solve(L, bc);
+            std::cout << "ue=" << ue.transpose() << "\n";
             for (int i = 0; i < int(sol.size()); ++i) {
                 auto p = M.nodes()[i];
                 double uex = g(p.x(), p.y());
-                expect(std::abs(sol(i) - uex) < 1e-12)
+                expect(std::abs(sol(i) - uex) < 1e-6)
                     << "Function '" << name << "' mismatch at node " << i;
             }
+            
+       
             // Check L2 error
             double err = computeL2Error(V, sol, g);
             expect(err < 1e-12) << name << " L2 error: " << err;

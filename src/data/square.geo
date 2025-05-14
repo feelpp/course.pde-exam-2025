@@ -1,6 +1,6 @@
 // square.geo
 // Unit square [0,1]×[0,1] with characteristic length 0.1
-h=0.5;
+h=1;
 // Define corner points
 Point(1) = {0.0, 0.0, 0.0, h};  // bottom‐left
 Point(2) = {1.0, 0.0, 0.0, h};  // bottom‐right
