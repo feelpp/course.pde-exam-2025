@@ -23,10 +23,15 @@
 #
 cmake_minimum_required(VERSION 3.21.0)
 
-project( course.pde-exam-2025  VERSION 4.0.0 )
+project( course.pde-exam-2025 LANGUAGES CXX VERSION 4.0.0 )
 
 set(EXTRA_VERSION "")
 set(PROJECT_SHORTNAME "ce2")
+
+# Require C++20
+set(CMAKE_CXX_STANDARD 20)
+
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(GNUInstallDirs)
 
@@ -35,16 +40,7 @@ if (POLICY CMP0077)
   set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 endif()
 
-find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
-find_package(pybind11 CONFIG REQUIRED)
 
-find_package(Feel++  PATHS ${FEELPP_DIR}/share/feelpp/feel/cmake/modules $ENV{FEELPP_DIR}/share/feelpp/feel/cmake/modules /usr/share/feelpp/feel/cmake/modules /usr/local/share/feelpp/feel/cmake/modules )
-if(NOT FEELPP_FOUND)
-  message(FATAL_ERROR "Feel++ was not found on your system. Make sure to install it and specify the FEELPP_DIR to reference the installation directory.")
-endif()
-if ( NOT FEELPP_TOOLBOXES_FOUND )
-  message(WARNING "Feel++ Toolboxes SDK is not found on your system. The toolbox application is now disabled.")
-endif()
 
 enable_testing()
 
@@ -52,12 +48,7 @@ if ( NOT TARGET check )
   add_custom_target(check)
 endif()
 
-option( FEELPP_PROJECT_ENABLE_CPP "Enable C++ application" ON )
-option( FEELPP_PROJECT_ENABLE_PYTHON "Enable Python application" ON )
-option( FEELPP_PROJECT_ENABLE_TESTS "Enable tests" ON )
-option( FEELPP_PROJECT_ENABLE_DOCS "Enable documentation" OFF )
 add_subdirectory( src )
-#add_subdirectory( docs )
 
 # extra ignored files
 list(APPEND CPACK_SOURCE_IGNORE_FILES
@@ -67,37 +58,4 @@ list(APPEND CPACK_SOURCE_IGNORE_FILES
   .appveyor.yml
   )
 
-set(CPACK_PACKAGE_NAME "${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}${EXTRA_VERSION}")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}${EXTRA_VERSION}")
-SET(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}${EXTRA_VERSION}-${CMAKE_SYSTEM_NAME}")
-set(CPACK_PACKAGE_DIRECTORY "${PROJECT_BINARY_DIR}/assets")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Cemosis course.pde-exam-2025 template application")
-set(CPACK_PACKAGE_DESCRIPTION "Cemosis provides a Feel++ template application.")
-set(CPACK_PACKAGE_VENDOR "Cemosis")
-set(CPACK_PACKAGE_CONTACT "Christophe Prud'homme <christophe.prudhomme@cemosis.fr>")
-set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
-set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
-set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
-
-
-set(CPACK_GENERATOR "TGZ;DEB")
-set(CPACK_SOURCE_GENERATOR "TGZ")
-
-
-set(CPACK_DEBIAN_PACKAGE_NAME "${PROJECT_NAME}")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_CONTACT}")
-if ( USE_FEELPP_TOOLBOXES )
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libfeelpp1 (>= 0.109)") # add depends with relevant toolbox lib
-else()
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libfeelpp1 (>= 0.109)")
-endif()
-set(CPACK_DEBIAN_PACKAGE_DESCRIPTION_SUMMARY "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}")
-set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION}")
-set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-set(CPACK_DEBIAN_PACKAGE_SECTION "science")
-set(CPACK_DEBIAN_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}${EXTRA_VERSION}")
-set(CPACK_DEBIAN_ARCHITECTURE "${CMAKE_SYSTEM_PROCESSOR}")
-# set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_SOURCE_DIR}/cmake/debian/postinst")
-  
-include(CPack)
 

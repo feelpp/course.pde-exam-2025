@@ -1,6 +1,16 @@
 {
-	"name": "Feel++ Dev Jammy",
-	"image": "ghcr.io/feelpp/feelpp-dev:jammy",
+	"name": "Feel++ Exam Ubuntu",
+	"image": "ghcr.io/feelpp/exam:ubuntu-24.04",
+	"settings": {
+		"extensions.autoUpdate": false,
+		"extensions.showRecommendationsOnlyOnDemand": true,
+		"github.copilot.enable": false,
+		"github.copilot.inlineSuggest.enable": false
+	},
+	"remoteEnv": {
+		"GITHUB_COPILOT_HOST": "",
+		"GITHUB_COPILOT_TOKEN": ""
+	},
 	// Add the IDs of extensions you want installed when the container is created in the array below.
 	"extensions": [
 		"ms-vscode.cpptools",
