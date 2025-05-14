@@ -79,7 +79,7 @@ public:
     BilinearForm(const FunctionSpace& V)
       : V_(V), K_(V.numDofs(), V.numDofs())
     {
-        assemble();
+        assemble2();
     }
 
     // Solve K u = F with Dirichlet g on boundary
@@ -151,15 +151,15 @@ public:
             K_.coeffRef(i,i) = 1.0;
         }
 
-        K_.prune(0.0);
+        //K_.prune(0.0);
 
         // 4) Solve with SparseLU (or your solver of choice)
         Eigen::SparseLU<SpMat> solver;
         solver.analyzePattern(K_);
         solver.factorize(K_);
-        std::cout << "K_=" << K_ << "\n";
-        std::cout << "F=" << F.transpose() << "\n";
-        std::cout << "sol=" << solver.solve(F).transpose() << "\n";
+        //std::cout << "K_=" << K_ << "\n";
+        //std::cout << "F=" << F.transpose() << "\n";
+        //std::cout << "sol=" << solver.solve(F).transpose() << "\n";
         return solver.solve(F);
     }
 
@@ -209,6 +209,95 @@ private:
         //std::cout << "K=" << K_ << "\n";
         checkSum();
     }
+    void assemble2() {
+        const Mesh& M = V_.mesh();
+        GeometricTransform G;
+    
+        // reference derivatives for P1 (dPhi(i,:) = [∂φ_i/∂r, ∂φ_i/∂s])
+        Eigen::Matrix<double,3,2> dPhi;
+        for(int i = 0; i < 3; ++i) {
+            double dr, ds;
+            Basis().dphi(i, dr, ds);
+            dPhi(i,0) = dr;
+            dPhi(i,1) = ds;
+        }
+    
+        std::vector<Eigen::Triplet<double>> trips;
+        trips.reserve(9 * M.numElements());
+    
+        for(int e = 0; e < int(M.numElements()); ++e) {
+            G.update(M, e);
+            auto Jinv = G.jacobian().inverse();
+            double detJ = G.detJ();
+            //std::cout << "detJ=" << detJ << " J=" << G.jacobian() << "\n";
+    
+            // Compute the constant 3×3 element stiffness via analytic formula
+            // M = Jinv^T * Jinv
+            //Eigen::Matrix2d M2 = Jinv.transpose() * Jinv;
+            //auto Jinv = G.jacobian().inverse();
+            Eigen::Matrix2d M2 = Jinv * Jinv.transpose();
+    
+            // Ke = dPhi * M2 * dPhi^T * detJ
+            Eigen::Matrix3d Ke = dPhi * M2 * dPhi.transpose() * detJ/2;
+    
+            // Scatter into the global matrix
+            for(int i = 0; i < 3; ++i)
+                for(int j = 0; j < 3; ++j)
+                    trips.emplace_back(
+                        V_.localToGlobal(e, i),
+                        V_.localToGlobal(e, j),
+                        Ke(i,j)
+                    );
+        }
+    
+        K_.setFromTriplets(trips.begin(), trips.end());
+        checkSum();
+    }
+    void assemble3() {
+        const Mesh& M = V_.mesh();
+        GeometricTransform G;
+    
+        // build reference dPhi once
+        Eigen::Matrix<double,3,2> dPhi;
+        for(int i=0;i<3;++i) {
+          double dr, ds;
+          Basis().dphi(i,dr,ds);
+          dPhi(i,0) = dr;
+          dPhi(i,1) = ds;
+        }
+    
+        std::vector<Eigen::Triplet<double>> trips;
+        trips.reserve(9*M.numElements());
+    
+        for(int e=0; e<int(M.numElements()); ++e) {
+          G.update(M,e);
+          auto J    = G.jacobian();
+          auto JinvT= J.inverse().transpose();
+          double detJ = G.detJ();
+          //std::cout << "detJ=" << detJ << " J=" << J << "\n";
+          // Ke(i,j) = (J^{-T} dPhi_i)^T · (J^{-T} dPhi_j) * detJ
+          Eigen::Matrix3d Ke;
+          for(int i=0;i<3;++i) {
+            auto gi = JinvT * dPhi.row(i).transpose();
+            for(int j=0;j<3;++j) {
+              auto gj = JinvT * dPhi.row(j).transpose();
+              Ke(i,j) = gi.dot(gj) * detJ;
+            }
+          }
+    
+          // scatter into K_
+          for(int i=0;i<3;++i)
+            for(int j=0;j<3;++j)
+              trips.emplace_back(
+                V_.localToGlobal(e,i),
+                V_.localToGlobal(e,j),
+                Ke(i,j)
+              );
+        }
+    
+        K_.setFromTriplets(trips.begin(), trips.end());
+        checkSum();
+    }
     // check that sum of rows is 0
     void checkSum() {
         double total = 0.0;
@@ -222,5 +311,22 @@ private:
                 std::cerr << "Row " << i << " sum = " << sum << "\n";
         }
         std::cout << "Total sum of all rows: " << total << "\n";
+
+        auto ux = V_.interpolate([](double x,double){ return x; });
+        Vec Kux = K_ * ux;
+        double energy = ux.dot(Kux);
+
+        // 3) compute mesh area
+        const Mesh& M = V_.mesh();
+        GeometricTransform G;
+        double area = 0.0;
+        for(int e = 0; e < int(M.numElements()); ++e) {
+            G.update(M, e);
+            // reference triangle area = 1/2
+            area += G.detJ() * 0.5;
+        }
+
+        std::cout << "Energy of x-hat: " << energy
+                << "   Mesh area: " << area << "\n";
     }
 };

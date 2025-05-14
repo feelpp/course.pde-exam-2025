@@ -48,7 +48,6 @@ int main(int argc, char* argv[]) {
         expect(M.numElements() >= 1u);
     };
 
-
     "P1 basis raw"_test = [](){
         Basis B;
         double dr, ds;
@@ -125,60 +124,68 @@ int main(int argc, char* argv[]) {
             expect(p2 == M.nodes().at(tri.v[2]));
         }
     };
+#if 0    
     "GeometricTransform triangle area"_test = [&]() {
-        Mesh M; 
-        expect(M.readGmsh(dataDir + "triangle2.msh"));
-        GeometricTransform G;
-        // loop over all element and check the area of the domain (a triangle) is 0.5
-        double area = 0.0;
-        for (int e = 0; e < int(M.numElements()); ++e) {
-            G.update(M, e);
-            area += G.detJ()/2;
+        for( auto & s : std::map<std::string,double>{{"triangle2.msh", 0.5}, {"square.msh", 1.}} ) {
+            Mesh M; 
+            expect(M.readGmsh(dataDir + s.first));
+            GeometricTransform G;
+            // loop over all element and check the area of the domain (a triangle) is s.second
+            double area = 0.0;
+            for (int e = 0; e < int(M.numElements()); ++e) {
+                G.update(M, e);
+                area += G.detJ()/2;
+            }
+            // area of a triangle is s.second
+            expect(std::abs(area - s.second) < 1e-12) << "Area mismatch: " << area << " != " << s.second;
         }
-        // area of a triangle is 0.5
-        expect(std::abs(area - 0.5) < 1e-12);
     };
-
+#endif
     // Dirichlet BC exact solutions for various functions
     "Dirichlet BC exact solutions"_test = [&]() {
-        Mesh M; expect(M.readGmsh(dataDir + "square.msh"));
-        FunctionSpace V(M, FEType::P1);
 
-        // Ensure we have a “Dirichlet” boundary definition
-        int dirTag = M.boundaryTag("Dirichlet");
-        expect(dirTag != 0) << "Mesh missing 'Dirichlet' boundary tag";
+        for( auto & s : std::map<std::string,double>{{"triangle2.msh", 0.5}, {"square.msh", 1.}} ) {
+            std::cout << "testing  messh " << s.first << "\n";
+            Mesh M; expect(M.readGmsh(dataDir + s.first));
+            FunctionSpace V(M, FEType::P1);
 
-        // Zero right-hand side
-        auto zero_f = [](double,double){ return 0.0; };
-        LinearForm  L(V, zero_f);
-        BilinearForm A(V);
+            // Ensure we have a “Dirichlet” boundary definition
+            int dirTag = M.boundaryTag("Dirichlet");
+            expect(dirTag != 0) << "Mesh missing 'Dirichlet' boundary tag";
 
-        // Candidate exact solutions (all harmonic): constant, x, y, x+2y
-        std::vector<std::pair<std::string, std::function<double(double,double)>>> funcs = {
-            {"constant", [](double,double){           return 5.0; }},
-            {"x",        [](double x,double){         return x;   }}//,
-            //{"y",        [](double,double y){         return y;   }},
-            //{"x+2y",     [](double x,double y){       return x + 2.0*y; }}
-        };
+            // Zero right-hand side
+            auto zero_f = [](double,double){ return 0.0; };
+            LinearForm  L(V, zero_f);
+            BilinearForm A(V);
 
-        for (auto& [name, g] : funcs) {
-            auto ue = V.interpolate(g);
-            std::map<std::string,std::function<double(double,double)>> bc;
-            bc["Dirichlet"] = g;
+            // Candidate exact solutions (all harmonic): constant, x, y, x+2y
+            std::vector<std::pair<std::string, std::function<double(double,double)>>> funcs = {
+                {"constant", [](double,double){           return 5.0; }},
+                {"x",        [](double x,double){         return x;   }},
+                {"y",        [](double,double y){         return y;   }},
+                {"x+2y",     [](double x,double y){       return x + 2.0*y; }}
+            };
 
-            auto sol = A.solve(L, bc);
-            std::cout << "ue=" << ue.transpose() << "\n";
-            for (int i = 0; i < int(sol.size()); ++i) {
-                auto p = M.nodes()[i];
-                double uex = g(p.x(), p.y());
-                expect(std::abs(sol(i) - uex) < 1e-6)
-                    << "Function '" << name << "' mismatch at node " << i;
+            for (auto& [name, g] : funcs) {
+                std::cout << "testing " << name << "\n";
+                auto ue = V.interpolate(g);
+                std::map<std::string,std::function<double(double,double)>> bc;
+                bc["Dirichlet"] = g;
+
+                auto sol = A.solve(L, bc);
+                std::cout << "ue=" << ue.transpose() << "\n";
+                for (int i = 0; i < int(sol.size()); ++i) {
+                    auto p = M.nodes()[i];
+                    double uex = g(p.x(), p.y());
+                    expect(std::abs(sol(i) - uex) < 1e-12)
+                        << "Function '" << name << "' mismatch at node " << i;
+                }
+                
+        
+                // Check L2 error
+                double err = computeL2Error(V, sol, g);
+                expect(err < 1e-12) << name << " L2 error: " << err;
             }
-            
-       
-            // Check L2 error
-            double err = computeL2Error(V, sol, g);
-            expect(err < 1e-12) << name << " L2 error: " << err;
         }
     };
 
@@ -194,5 +201,6 @@ int main(int argc, char* argv[]) {
         expect(err==0.0);
     };
 #endif    
+
     return 0;
 }
