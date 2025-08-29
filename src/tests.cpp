@@ -173,7 +173,7 @@ int main(int argc, char* argv[]) {
                 bc["Dirichlet"] = g;
 
                 auto sol = A.solve(L, bc);
-                std::cout << "ue=" << ue.transpose() << "\n";
+                //std::cout << "ue=" << ue.transpose() << "\n";
                 for (int i = 0; i < int(sol.size()); ++i) {
                     auto p = M.nodes()[i];
                     double uex = g(p.x(), p.y());

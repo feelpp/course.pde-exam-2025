@@ -111,8 +111,8 @@ public:
                     isDir[i]   = true;
                     auto& P    = V_.mesh().nodes()[i];
                     gval(i)    = gfunc(P.x(), P.y());
-                    std::cout << "Dirichlet BC: node " << i 
-                              << " gval=" << gval(i) << "\n";
+                    //std::cout << "Dirichlet BC: node " << i 
+                    //          << " gval=" << gval(i) << "\n";
                 }
             }
         }
@@ -125,13 +125,13 @@ public:
             else {
                 for(auto it = SpMat::InnerIterator(K_, i); it; ++it) {
                     int j = it.col();
-                    std::cout << "K("<< i << "," << j<< ")=" << it.value() << "\n";
+                    //std::cout << "K("<< i << "," << j<< ")=" << it.value() << "\n";
                     if(isDir[j]) {
-                        std::cout << "before F(i)=" << F(i) << " - K(i,j)*gval(j)="
-                                  << it.value() * gval(j) << "\n";
+                        //std::cout << "before F(i)=" << F(i) << " - K(i,j)*gval(j)="
+                        //          << it.value() * gval(j) << "\n";
                         F(i) -= it.value() * gval(j);
-                        std::cout << "after F(i)=" << F(i) << " - K(i,j)*gval(j)="
-                                  << it.value() * gval(j) << "\n";
+                       // std::cout << "after F(i)=" << F(i) << " - K(i,j)*gval(j)="
+                        //          << it.value() * gval(j) << "\n";
                     }
                 }
             }
